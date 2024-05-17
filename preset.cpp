@@ -13,9 +13,7 @@
 #include <bitset>
 #include <random>
 
-
 using namespace std;
-
 
 // --------------- Trees --------------- 
 
@@ -81,105 +79,230 @@ template<typename TreeType> struct RangeSegmentTree {
 
 	const static inline TreeType FILLER = 0;
 
-	struct Node {
+	struct Data {
 		TreeType value = FILLER;
-
-		int operation = 0; // 0 - addition, 1 - setting
-		TreeType worth = 0;
+		int id = 0;
 	};
 
-	TreeType func(const TreeType& A, const TreeType& B) {
-		return A + B;
-	}
+	struct Operation {
+		int type = 0;
+		int value = 0;
+	};
+
+	struct Node {
+		Data data;
+		Operation operation;
+	};
+
+	const static inline Node FILLER_NODE = { FILLER, 0 };
 
 	int size = 0;
 	vector<Node> tree;
 
-	void __propagate(int __i, int __l, int __r) {
-
-		if (tree[__i].operation == 0) {
-			tree[__i].value += tree[__i].worth * (__r - __l);
+	Data func(const Data& A, const Data& B) {
+		if (A.value > B.value) {
+			return A;
 		}
-		if (tree[__i].operation == 1) {
-			tree[__i].value = tree[__i].worth * (__r - __l);
+		return B;
+	}
+
+	void __propagate(int __i, int __l, int __r) {
+		if (tree[__i].operation.type == 0) {
+			tree[__i].data.value += tree[__i].operation.value;
 		}
 
 		if (__r - __l > 1) {
-			if (tree[__i].operation == 0) {
-				tree[__i * 2 + 1].worth += tree[__i].worth;
-				tree[__i * 2 + 2].worth += tree[__i].worth;
-			}
-			if (tree[__i].operation == 1) {
-				tree[__i * 2 + 1].operation = 1;
-				tree[__i * 2 + 2].operation = 1;
-				tree[__i * 2 + 1].worth = tree[__i].worth;
-				tree[__i * 2 + 2].worth = tree[__i].worth;
+			if (tree[__i].operation.type == 0) {
+				tree[__i * 2 + 1].operation.value += tree[__i].operation.value;
+				tree[__i * 2 + 2].operation.value += tree[__i].operation.value;
 			}
 		}
 
-		tree[__i].operation = 0;
-		tree[__i].worth = 0;
+		tree[__i].operation.type = 0;
+		tree[__i].operation.value = 0;
 	}
 
-	void __update(const TreeType& V, int l, int r, int operation, int __i, int __l, int __r) {
+	void __init(int __i, int __l, int __r) {
+		tree[__i].data.id = __l;
+		if (__r - __l > 1) {
+			int __m = (__l + __r) / 2;
+			__init(__i * 2 + 1, __l, __m);
+			__init(__i * 2 + 2, __m, __r);
+		}
+	}
+
+	void __update(const TreeType& value, int l, int r, int type, int __i, int __l, int __r) {
 		__propagate(__i, __l, __r);
 		if (__r <= l || r <= __l) {
 			return;
 		}
 		if (l <= __l && __r <= r) {
-			tree[__i].operation = operation;
-			tree[__i].worth = V;
+			tree[__i].operation.value = value;
+			tree[__i].operation.type = type;
 			__propagate(__i, __l, __r);
 			return;
 		}
 		int __m = (__l + __r) / 2;
-		__update(V, l, r, operation, __i * 2 + 1, __l, __m);
-		__update(V, l, r, operation, __i * 2 + 2, __m, __r);
-		tree[__i].value = func(tree[__i * 2 + 1].value, tree[__i * 2 + 2].value);
+		__update(value, l, r, type, __i * 2 + 1, __l, __m);
+		__update(value, l, r, type, __i * 2 + 2, __m, __r);
+		tree[__i].data = func(tree[__i * 2 + 1].data, tree[__i * 2 + 2].data);
 	}
 
-	TreeType __get(int l, int r, int __i, int __l, int __r) {
+	Data __get(int l, int r, int __i, int __l, int __r) {
 		__propagate(__i, __l, __r);
 		if (__r <= l || r <= __l) {
-			return FILLER;
+			return { FILLER, 0 };
 		}
 		if (l <= __l && __r <= r) {
-			return tree[__i].value;
+			return tree[__i].data;
 		}
 		int __m = (__l + __r) / 2;
-
-		TreeType V1 = __get(l, r, __i * 2 + 1, __l, __m);
-		TreeType V2 = __get(l, r, __i * 2 + 2, __m, __r);
-
+		Data V1 = __get(l, r, __i * 2 + 1, __l, __m);
+		Data V2 = __get(l, r, __i * 2 + 2, __m, __r);
 		return func(V1, V2);
 	}
 
-	RangeSegmentTree(const vector<TreeType>& arr) {
-		size = arr.size();
-		tree.resize(4 * size);
-		for (int i = 0; i < size; i++) {
-			set(arr[i], i, i);
-		}
-	}
-	RangeSegmentTree(int N, const TreeType& value) {
+	RangeSegmentTree(int N) {
 		size = N;
-		tree.resize(4 * size);
-		for (int i = 0; i < size; i++) {
-			set(value, i, i);
-		}
+		tree.resize(4 * N, FILLER_NODE);
+		__init(0, 0, size);
 	}
 
-	void add(const TreeType& V, int l, int r) {
-		__update(V, l, r + 1, 0, 0, 0, size);
+	void add(const TreeType& value, int l, int r) {
+		__update(value, l, r + 1, 0, 0, 0, size);
 	}
 
-	void set(const TreeType& V, int l, int r) {
-		__update(V, l, r + 1, 1, 0, 0, size);
-	}
-
-	TreeType get(int l, int r) {
+	Data get(int l, int r) {
 		return __get(l, r + 1, 0, 0, size);
 	}
+
+};
+
+template<typename TreeType> struct SparseRangeSegmentTree {
+
+	const static inline TreeType FILLER = 0;
+
+	struct Data {
+		TreeType value = FILLER;
+	};
+
+	Data DATA_FILLER = { FILLER };
+
+	struct Operation {
+		int type = 0; // 0 - addition, 1 - setting
+		TreeType value = 0;
+	};
+
+	struct Node {
+		Data data;
+		Operation operation;
+		int left_id = -1;
+		int right_id = -1;
+	};
+
+	int size = 0;
+	vector<Node> tree;
+	int free_node = 1;
+
+	void __initNode(int __i) {
+		tree[__i].left_id = free_node;
+		tree[__i].right_id = free_node + 1;
+		free_node += 2;
+	}
+
+	bool __isInit(int __i) {
+		if (tree[__i].left_id == -1) {
+			return false;
+		}
+		return true;
+	}
+
+	Data func(const Data& A, const Data& B) {
+		Data ans;
+		ans.value = A.value + B.value;
+		return ans;
+	}
+
+	void __propagate(int __i, int __l, int __r) {
+		if (tree[__i].operation.type == 0) {
+			tree[__i].data.value += tree[__i].operation.value * (__r - __l);
+		}
+		if (tree[__i].operation.type == 1) {
+			tree[__i].data.value = tree[__i].operation.value * (__r - __l);
+		}
+
+		if (__r - __l > 1) {
+			if (tree[__i].operation.type == 0) {
+				tree[tree[__i].left_id].operation.value += tree[__i].operation.value;
+				tree[tree[__i].right_id].operation.value += tree[__i].operation.value;
+			}
+			if (tree[__i].operation.type == 1) {
+				tree[tree[__i].left_id].operation.value = tree[__i].operation.value;
+				tree[tree[__i].right_id].operation.value = tree[__i].operation.value;
+				tree[tree[__i].left_id].operation.type = 1;
+				tree[tree[__i].right_id].operation.type = 1;
+			}
+		}
+
+		tree[__i].operation.value = 0;
+		tree[__i].operation.type = 0;
+
+	}
+
+	void __update(const TreeType& value, int l, int r, int type, int __i, int __l, int __r) {
+		if (__r - __l > 1 && !__isInit(__i)) {
+			__initNode(__i);
+		}
+		__propagate(__i, __l, __r);
+		if (__r <= l || r <= __l) {
+			return;
+		}
+		if (l <= __l && __r <= r) {
+			tree[__i].operation.value = value;
+			tree[__i].operation.type = type;
+			__propagate(__i, __l, __r);
+			return;
+		}
+		int __m = (__l + __r) / 2;
+		__update(value, l, r, type, tree[__i].left_id, __l, __m);
+		__update(value, l, r, type, tree[__i].right_id, __m, __r);
+		tree[__i].data = func(tree[tree[__i].left_id].data, tree[tree[__i].right_id].data);
+	}
+
+	Data __get(int l, int r, int __i, int __l, int __r) {
+		if (__r - __l > 1 && !__isInit(__i)) {
+			__initNode(__i);
+		}
+		__propagate(__i, __l, __r);
+		if (__r <= l || r <= __l) {
+			return DATA_FILLER;
+		}
+		if (l <= __l && __r <= r) {
+			return tree[__i].data;
+		}
+		int __m = (__l + __r) / 2;
+		Data V1 = __get(l, r, tree[__i].left_id, __l, __m);
+		Data V2 = __get(l, r, tree[__i].right_id, __m, __r);
+		return func(V1, V2);
+	}
+
+	SparseRangeSegmentTree(int N) {
+		size = N;
+		tree.resize(10 * N);
+	}
+
+	void add(const TreeType& value, int l, int r) {
+		__update(value, l, r + 1, 0, 0, 0, size);
+	}
+
+	void set(const TreeType& value, int l, int r) {
+		__update(value, l, r + 1, 1, 0, 0, size);
+	}
+
+	Data get(int l, int r) {
+		return __get(l, r + 1, 0, 0, size);
+	}
+
 };
 
 template<typename TreeType> struct MergeSortTree {
@@ -282,10 +405,294 @@ public:
 	}
 };
 
+template<typename TreeType> struct AVL_Tree {
+
+	struct Node {
+
+		TreeType key = 0;
+		int height = 0;
+
+		Node* left = nullptr;
+		Node* right = nullptr;
+
+	};
+
+	Node* head = nullptr;
+	unsigned int tree_size = 0;
+
+	void __initNode(Node* current_node, TreeType key) {
+		tree_size++;
+
+		current_node->key = key;
+		current_node->height = 1;
+
+		current_node->left = new Node;
+		current_node->right = new Node;
+	}
+
+	bool __isInit(Node* current_node) const {
+		return (current_node->left != nullptr) && (current_node->right != nullptr);
+	}
+
+	void __destroyTree(Node* current_node) {
+		if (__isInit(current_node)) {
+			__destroyTree(current_node->left);
+			__destroyTree(current_node->right);
+		}
+		delete current_node;
+	}
+
+	void __smallLeftRotation(Node* current_node, Node* last_node) { // Left left node rotation
+		Node* left_node = current_node->left;
+
+		if (last_node != nullptr) {
+			if (last_node->left == current_node) {
+				last_node->left = left_node;
+			}
+			else {
+				last_node->right = left_node;
+			}
+		}
+		else {
+			head = left_node;
+		}
+
+		current_node->left = left_node->right;
+		left_node->right = current_node;
+
+		current_node->height = max(current_node->left->height, current_node->right->height) + 1;
+		left_node->height = max(left_node->left->height, left_node->right->height) + 1;
+	}
+	void __smallRightRotation(Node* current_node, Node* last_node) { // Right right node rotation
+		Node* right_node = current_node->right;
+
+		if (last_node != nullptr) {
+			if (last_node->left == current_node) {
+				last_node->left = right_node;
+			}
+			else {
+				last_node->right = right_node;
+			}
+		}
+		else {
+			head = right_node;
+		}
+
+		current_node->right = right_node->left;
+		right_node->left = current_node;
+
+		current_node->height = max(current_node->left->height, current_node->right->height) + 1;
+		right_node->height = max(right_node->left->height, right_node->right->height) + 1;
+	}
+	void __bigLeftRotation(Node* current_node, Node* last_node) { // Left right node rotation
+		__smallRightRotation(current_node->left, current_node);
+		__smallLeftRotation(current_node, last_node);
+	}
+	void __bigRightRotation(Node* current_node, Node* last_node) { // Right left node rotation
+		__smallLeftRotation(current_node->right, current_node);
+		__smallRightRotation(current_node, last_node);
+	}
+
+	void __insert(TreeType key, Node* current_node, Node* last_node) {
+		if (!__isInit(current_node)) {
+			__initNode(current_node, key);
+			return;
+		}
+		if (key < current_node->key) {
+			__insert(key, current_node->left, current_node);
+		}
+		if (key > current_node->key) {
+			__insert(key, current_node->right, current_node);
+		}
+
+		int Hl = current_node->left->height;
+		int Hr = current_node->right->height;
+
+		if (abs(Hl - Hr) == 0) {
+			return;
+		}
+		if (abs(Hl - Hr) == 1) {
+			current_node->height++;
+			return;
+		}
+
+		if (Hl > Hr) {
+			int Hll = current_node->left->left->height;
+			int Hlr = current_node->left->right->height;
+			if (Hll > Hlr) {
+				__smallLeftRotation(current_node, last_node);
+			}
+			else {
+				__bigLeftRotation(current_node, last_node);
+			}
+		}
+		else {
+			int Hrl = current_node->right->left->height;
+			int Hrr = current_node->right->right->height;
+			if (Hrl > Hrr) {
+				__bigRightRotation(current_node, last_node);
+			}
+			else {
+				__smallRightRotation(current_node, last_node);
+			}
+		}
+	}
+	
+	void __getAllElements(TreeType* ans, int& i, Node* current_node) const {
+		if (!__isInit(current_node)) {
+			return;
+		}
+
+		__getAllElements(ans, i, current_node->left);
+		ans[i++] = current_node->key;
+		__getAllElements(ans, i, current_node->right);
+	}
+
+	Node* __find(TreeType key) const {
+		Node* current_node = head;
+		while (__isInit(current_node) && current_node->key != key) {
+			if (key < current_node->key) {
+				current_node = current_node->left;
+			}
+			else if (key > current_node->key) {
+				current_node = current_node->right;
+			}
+		}
+		return current_node;
+	}
+	Node* __lower_bound(TreeType key) const {
+		Node* ans = nullptr;
+		Node* current_node = head;
+		while (__isInit(current_node)) {
+			if (current_node->key < key) {
+				current_node = current_node->right;
+			}
+			else {
+				ans = current_node;
+				current_node = current_node->left;
+			}
+		}
+		return ans;
+	}
+
+	AVL_Tree() {
+		head = new Node;
+	}
+	AVL_Tree(const AVL_Tree& T) = delete;
+	~AVL_Tree() {
+		__destroyTree(head);
+	}
+
+	AVL_Tree& operator=(const AVL_Tree& T) = delete;
+
+	bool isExists(TreeType key) const {
+		return __isInit(__find(key));
+	}
+
+	void insert(TreeType key) { // Adds an element to the tree, if it is already there, then nothing will happen
+		__insert(key, head, nullptr);
+	}
+
+	TreeType lower_bound(TreeType key) const { // Returns V >= key or nullptr if there is no suitable value
+		Node* ans = __lower_bound(key);
+		if (ans == nullptr) return nullptr;
+		return ans->key;
+	}
+
+	unsigned int size() const {
+		return tree_size;
+	}
+	bool empty() const {
+		return tree_size == 0;
+	}
+
+	TreeType* getAllElements() { // Returns an allocated array with all elements in sorted order
+		TreeType* ans = new int[tree_size];
+		int i = 0;
+		__getAllElements(ans, i, head);
+		return ans;
+	}
+};
+
+// --------------- Graphs ---------------
+
+struct BinaryLifting {
+	
+	/*
+	This structure allows you to find the smallest common ancestor (LCA)
+	of two vertices in an oriented tree in log(N). Also allows you to find any
+	commutative function on the path in the tree.
+	*/
+
+	int N = 0; // Number of vertices in the graph
+	int deg = 0;
+	int root = 0;
+	vector<int> dist; // Dists from root to others
+	vector<vector<int>> jmp; // jmp[vertex][number] = the 2^number ancerstor of the vertex
+
+	BinaryLifting(const vector<vector<int>>& g, int root = 0) {
+		N = g.size();
+		this->root = root;
+		dist.resize(N, 0);
+		__getDist(root, 0, g);
+
+		deg = 3 + log2(N);
+		jmp.resize(N, vector<int>(deg, -1));
+
+
+		// jumps at 1
+		for (int i = 0; i < N; i++) {
+			for (int j : g[i]) {
+				jmp[j][0] = i;
+			}
+		}
+		jmp[root][0] = root;
+
+		// other jumps
+		for (int k = 1; k < deg; k++) {
+			for (int i = 0; i < N; i++) {
+				jmp[i][k] = jmp[jmp[i][k - 1]][k - 1];
+			}
+		}
+	}
+
+	void __getDist(int curr_V, int curr_dist, const vector<vector<int>>& g) {
+		dist[curr_V] = curr_dist;
+		for (int next_V : g[curr_V]) {
+			__getDist(next_V, curr_dist + 1, g);
+		}
+	}
+
+	int getLCA(int u, int v) {
+		if (dist[u] < dist[v]) {
+			swap(u, v);
+		}
+		int d = dist[u] - dist[v];
+		for (int i = deg - 1; i >= 0; i--) {
+			if (d >= (1 << i)) {
+				d -= (1 << i);
+				u = jmp[u][i];
+			}
+		}
+
+		if (u == v) {
+			return u;
+		}
+
+		for (int i = deg - 1; i >= 0; i--) {
+			if (jmp[u][i] != jmp[v][i]) {
+				u = jmp[u][i];
+				v = jmp[v][i];
+			}
+		}
+		return jmp[u][0];
+	}
+
+};
 
 // --------------- Containers ---------------
 
-template<typename StackType> struct Stack{
+template<typename StackType> struct Stack {
 
 	StackType func(const StackType& A, const StackType& B) {
 		return min(A, B);
@@ -294,7 +701,7 @@ template<typename StackType> struct Stack{
 	vector<StackType> main_stack;
 	vector<StackType> func_stack;
 
-	void push(const StackType &value) {
+	void push(const StackType& value) {
 		main_stack.push_back(value);
 		if (func_stack.empty()) {
 			func_stack.push_back(value);
@@ -313,7 +720,7 @@ template<typename StackType> struct Stack{
 		return main_stack.size();
 	}
 
-	bool isEmpty() {
+	bool empty() {
 		return main_stack.size() == 0;
 	}
 
@@ -328,20 +735,20 @@ template<typename StackType> struct Stack{
 
 template<typename QueueType> struct Queue {
 
-	QueueType func(const QueueType &A, const QueueType &B) {
+	QueueType func(const QueueType& A, const QueueType& B) {
 		return std::min(A, B);
 	}
 
 	Stack<QueueType> front_part;
 	Stack<QueueType> back_part;
 
-	void push(const QueueType &value) {
+	void push(const QueueType& value) {
 		back_part.push(value);
 	}
 
 	void pop() {
-		if (front_part.isEmpty()) {
-			while (!back_part.isEmpty()) {
+		if (front_part.empty()) {
+			while (!back_part.empty()) {
 				front_part.push(back_part.back());
 				back_part.pop();
 			}
@@ -353,7 +760,7 @@ template<typename QueueType> struct Queue {
 		return front_part.size() + back_part.size();
 	}
 
-	bool isEmpty() {
+	bool empty() {
 		return (front_part.size() + back_part.size() == 0);
 	}
 
@@ -368,7 +775,13 @@ template<typename QueueType> struct Queue {
 	}
 
 	QueueType getFuncValue() {
-		return func(front_part.func_value(), back_part.func_value());
+		if (front_part.empty()) {
+			return back_part.getFuncValue();
+		}
+		if (back_part.empty()) {
+			return front_part.getFuncValue();
+		}
+		return func(front_part.getFuncValue(), back_part.getFuncValue());
 	}
 };
 
@@ -376,8 +789,10 @@ template<typename QueueType> struct Queue {
 // --------------- Strings and Hashes ---------------
 
 template<typename HashType> struct AmountHash {
-	/* This class allows you to get a hash of a multiset 
-	of elements from an array segment from l to r */
+	/* 
+	This class allows you to get a hash of a multiset 
+	of elements from an array segment from l to r 
+	*/
 
 	inline static vector<int> MODS = { (int)1e9 + 7, (int)1e9 + 9 };
 
@@ -412,11 +827,49 @@ template<typename HashType> struct AmountHash {
 	}
 
 	vector<int> getHash(int l, int r) { // [l, r], 0-ind
-		vector<int> result(MODS.size());
+		vector<int> ans(MODS.size());
 		for (int i = 0; i < MODS.size(); i++) {
-			result[i] = (hash[i][l] - hash[i][r + 1] + MODS[i]) % MODS[i];
+			ans[i] = (hash[i][l] - hash[i][r + 1] + MODS[i]) % MODS[i];
 		}
-		return result;
+		return ans;
+	}
+};
+
+struct PolynomialHash {
+
+	inline static vector<int> MODS = { (int)1e9 + 7, (int)1e9 + 9 };
+	inline static const int p = 239;
+	inline static vector<vector<int>> ps;
+
+	static void init(int N) {
+		ps.resize(MODS.size());
+		for (int i = 0; i < MODS.size(); i++) {
+			ps[i].resize(N);
+			ps[i][0] = 1;
+			for (int j = 1; j < N; j++) {
+				ps[i][j] = (ps[i][j - 1] * p) % MODS[i];
+			}
+		}
+	}
+
+	vector<vector<int>> hash;
+
+	PolynomialHash(const string& S) {
+		hash.resize(MODS.size());
+		for (int i = 0; i < MODS.size(); i++) {
+			hash[i].resize(S.size() + 1, 0);
+			for (int j = (int)S.size() - 1; j >= 0; j--) {
+				hash[i][j] = (S[j] + hash[i][j + 1] * p) % MODS[i];
+			}
+		}
+	}
+
+	vector<int> getHash(int l, int r) { // [l, r], 0-ind
+		vector<int> ans(MODS.size());
+		for (int i = 0; i < MODS.size(); i++) {
+			ans[i] = (hash[i][l] - (hash[i][r + 1] * ps[i][r - l + 1]) % MODS[i] + MODS[i]) % MODS[i];
+		}
+		return ans;
 	}
 };
 
