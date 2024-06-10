@@ -61,7 +61,7 @@ template<typename TreeType> struct SegmentTree {
 			update(arr[i], i);
 		}
 	}
-	SegmentTree(int N, const TreeType &value) {
+	SegmentTree(int N, const TreeType& value) {
 		size = N;
 		tree.resize(4 * size, value);
 	}
@@ -70,7 +70,7 @@ template<typename TreeType> struct SegmentTree {
 		__update(value, i, 0, size, 0);
 	}
 
-	TreeType get(int l, int r) { // [l, r], 0-ind
+	TreeType __get(int l, int r) { // [l, r], 0-ind
 		return __get(l, r + 1, 0, size, 0);
 	}
 };
@@ -168,11 +168,11 @@ template<typename TreeType> struct RangeSegmentTree {
 		__init(0, 0, size);
 	}
 
-	void add(const TreeType& value, int l, int r) {
+	void __add(const TreeType& value, int l, int r) {
 		__update(value, l, r + 1, 0, 0, 0, size);
 	}
 
-	Data get(int l, int r) {
+	Data __get(int l, int r) {
 		return __get(l, r + 1, 0, 0, size);
 	}
 
@@ -291,7 +291,7 @@ template<typename TreeType> struct SparseRangeSegmentTree {
 		tree.resize(10 * N);
 	}
 
-	void add(const TreeType& value, int l, int r) {
+	void __add(const TreeType& value, int l, int r) {
 		__update(value, l, r + 1, 0, 0, 0, size);
 	}
 
@@ -299,7 +299,7 @@ template<typename TreeType> struct SparseRangeSegmentTree {
 		__update(value, l, r + 1, 1, 0, 0, size);
 	}
 
-	Data get(int l, int r) {
+	Data __get(int l, int r) {
 		return __get(l, r + 1, 0, 0, size);
 	}
 
@@ -312,7 +312,7 @@ private:
 	function from elements from an array segment from l to r
 	if it works quickly on a sorted segment from l to r. */
 
-	int func(const vector<TreeType> &arr, const TreeType& V) {
+	int func(const vector<TreeType>& arr, const TreeType& V) {
 		int l = 0;
 		int r = arr.size() - 1;
 		if (V < arr[0]) {
@@ -400,7 +400,7 @@ public:
 		__mergeSort(arr, 0);
 	}
 
-	int get(const TreeType& V, int l, int r) { // [l, r], 0-ind
+	int __get(const TreeType& V, int l, int r) { // [l, r], 0-ind
 		return __get(V, l, r + 1, 0, size, 0);
 	}
 };
@@ -537,7 +537,7 @@ template<typename TreeType> struct AVL_Tree {
 			}
 		}
 	}
-	
+
 	void __getAllElements(TreeType* ans, int& i, Node* current_node) const {
 		if (!__isInit(current_node)) {
 			return;
@@ -617,7 +617,7 @@ template<typename TreeType> struct AVL_Tree {
 // --------------- Graphs ---------------
 
 struct BinaryLifting {
-	
+
 	/*
 	This structure allows you to find the smallest common ancestor (LCA)
 	of two vertices in an oriented tree in log(N). Also allows you to find any
@@ -829,19 +829,122 @@ template<typename TableType> struct SparseTable {
 		}
 	}
 
-	TableType get(int l, int r) { // [l, r], 0-ind
+	TableType __get(int l, int r) { // [l, r], 0-ind
 		int deg = degrees[r - l + 1];
 		return func(table[deg][l], table[deg][r - pows[deg] + 1]);
 	}
 };
 
+struct BitBor {
+
+	/*
+	This structure allows you to find among a set of numbers such that x^ value is the maximum
+	*/
+
+	struct Node {
+
+		Node* left_node = nullptr; // 0
+		Node* right_node = nullptr; // 1
+
+		int cnt = 0;
+	};
+
+	const int number_of_bits = 32;
+	Node* head = nullptr;
+
+	BitBor(int number_of_bits) : number_of_bits(number_of_bits) {
+		head = new Node;
+		head->cnt = 2e15 + 14;
+	}
+
+	void __add(int x, int current_bit, Node* current_node) {
+		if (current_bit == 0) {
+			return;
+		}
+		int next_bit = current_bit - 1;
+
+		if (((1ll << next_bit) & x) == 0) {
+			if (current_node->left_node == nullptr) {
+				current_node->left_node = new Node;
+			}
+			current_node->left_node->cnt++;
+			__add(x, next_bit, current_node->left_node);
+		}
+		else {
+			if (current_node->right_node == nullptr) {
+				current_node->right_node = new Node;
+			}
+			current_node->right_node->cnt++;
+			__add(x, next_bit, current_node->right_node);
+		}
+	}
+
+	void add(int x) {
+		__add(x, number_of_bits, head);
+	}
+
+	int __get(int x, int current_bit, Node* current_node) const {
+		if (current_bit == 0) {
+			return x;
+		}
+		int next_bit = current_bit - 1;
+
+		if (((1ll << next_bit) & x) == 0) {
+			if (current_node->right_node == nullptr) {
+				return __get(x, next_bit, current_node->left_node);
+			}
+			return __get(x ^ (1ll << next_bit), next_bit, current_node->right_node);
+		}
+		else {
+			if (current_node->left_node == nullptr) {
+				return __get(x ^ (1ll << next_bit), next_bit, current_node->right_node);
+			}
+			return __get(x, next_bit, current_node->left_node);
+		}
+	}
+
+	int get(int x) {
+		if (head->left_node == nullptr && head->right_node == nullptr) {
+			return 0;
+		}
+		return __get(x, number_of_bits, head);
+	}
+
+	void __erase(int x, int current_bit, Node* current_node) {
+		if (current_bit == 0) {
+			return;
+		}
+		int next_bit = current_bit - 1;
+
+		if (((1ll << next_bit) & x) == 0) {
+			__erase(x, next_bit, current_node->left_node);
+			current_node->left_node->cnt--;
+			if (current_node->left_node->cnt == 0) {
+				delete current_node->left_node;
+				current_node->left_node = nullptr;
+			}
+		}
+		else {
+			__erase(x, next_bit, current_node->right_node);
+			current_node->right_node->cnt--;
+			if (current_node->right_node->cnt == 0) {
+				delete current_node->right_node;
+				current_node->right_node = nullptr;
+			}
+		}
+	}
+
+	void erase(int x) { // dont erase elements which wasn't added
+		__erase(x, number_of_bits, head);
+	}
+};
 
 // --------------- Strings and Hashes ---------------
 
 template<typename HashType> struct AmountHash {
-	/* 
-	This class allows you to get a hash of a multiset 
-	of elements from an array segment from l to r 
+	/*
+	This class allows you to get a hash of a multiset
+	of elements from an array segment from l to r
 	*/
 
 	inline static vector<int> MODS = { (int)1e9 + 7, (int)1e9 + 9 };
@@ -876,7 +979,7 @@ template<typename HashType> struct AmountHash {
 		}
 	}
 
-	vector<int> getHash(int l, int r) { // [l, r], 0-ind
+	vector<int> getHash(int l, int r) const { // [l, r], 0-ind
 		vector<int> ans(MODS.size());
 		for (int i = 0; i < MODS.size(); i++) {
 			ans[i] = (hash[i][l] - hash[i][r + 1] + MODS[i]) % MODS[i];
@@ -914,7 +1017,7 @@ struct PolynomialHash {
 		}
 	}
 
-	vector<int> getHash(int l, int r) { // [l, r], 0-ind
+	vector<int> getHash(int l, int r) const { // [l, r], 0-ind
 		vector<int> ans(MODS.size());
 		for (int i = 0; i < MODS.size(); i++) {
 			ans[i] = (hash[i][l] - (hash[i][r + 1] * ps[i][r - l + 1]) % MODS[i] + MODS[i]) % MODS[i];
@@ -923,7 +1026,7 @@ struct PolynomialHash {
 	}
 };
 
-void zFunction(const string &S, vector<int> &Z) {
+void zFunction(const string& S, vector<int>& Z) {
 	int N = (int)S.size();
 	Z.assign(N, 0);
 	for (int i = 1, l = 0, r = 1; i < N; ++i) {
