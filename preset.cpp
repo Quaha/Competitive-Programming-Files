@@ -70,7 +70,7 @@ template<typename TreeType> struct SegmentTree {
 		__update(value, i, 0, size, 0);
 	}
 
-	TreeType __get(int l, int r) { // [l, r], 0-ind
+	TreeType get(int l, int r) { // [l, r], 0-ind
 		return __get(l, r + 1, 0, size, 0);
 	}
 };
@@ -168,11 +168,11 @@ template<typename TreeType> struct RangeSegmentTree {
 		__init(0, 0, size);
 	}
 
-	void __add(const TreeType& value, int l, int r) {
+	void add(const TreeType& value, int l, int r) {
 		__update(value, l, r + 1, 0, 0, 0, size);
 	}
 
-	Data __get(int l, int r) {
+	Data get(int l, int r) {
 		return __get(l, r + 1, 0, 0, size);
 	}
 
@@ -291,7 +291,7 @@ template<typename TreeType> struct SparseRangeSegmentTree {
 		tree.resize(10 * N);
 	}
 
-	void __add(const TreeType& value, int l, int r) {
+	void add(const TreeType& value, int l, int r) {
 		__update(value, l, r + 1, 0, 0, 0, size);
 	}
 
@@ -299,14 +299,13 @@ template<typename TreeType> struct SparseRangeSegmentTree {
 		__update(value, l, r + 1, 1, 0, 0, size);
 	}
 
-	Data __get(int l, int r) {
+	Data get(int l, int r) {
 		return __get(l, r + 1, 0, 0, size);
 	}
 
 };
 
 template<typename TreeType> struct MergeSortTree {
-private:
 
 	/* This structure allows you to quickly calculate some
 	function from elements from an array segment from l to r
@@ -333,11 +332,9 @@ private:
 		return arr.size() - r;
 	}
 
-private:
 	int size = 0;
 	vector<vector<TreeType>> tree;
 
-private:
 	void __mergeSort(vector<TreeType>& arr, int __i) {
 		if (arr.size() == 1) {
 			tree[__i] = arr;
@@ -345,12 +342,12 @@ private:
 		}
 		int m = arr.size() / 2;
 
-		std::vector<TreeType> left(m);
+		std::vector<TreeType> lefts(m);
 		for (int i = 0; i < m; i++) {
-			left[i] = arr[i];
+			lefts[i] = arr[i];
 		}
 
-		__mergeSort(left, __i * 2 + 1);
+		__mergeSort(lefts, __i * 2 + 1);
 
 		std::vector<TreeType> right(arr.size() - m);
 		for (int i = m; i < arr.size(); i++) {
@@ -360,16 +357,16 @@ private:
 		__mergeSort(right, __i * 2 + 2);
 
 		for (int i = 0, l = 0, r = 0; i < arr.size(); i++) {
-			if (l < left.size() && r < right.size()) {
-				if (left[l] < right[r]) {
-					arr[i] = left[l++];
+			if (l < lefts.size() && r < right.size()) {
+				if (lefts[l] < right[r]) {
+					arr[i] = lefts[l++];
 				}
 				else {
 					arr[i] = right[r++];
 				}
 			}
-			else if (l < left.size()) {
-				arr[i] = left[l++];
+			else if (l < lefts.size()) {
+				arr[i] = lefts[l++];
 			}
 			else if (r < right.size()) {
 				arr[i] = right[r++];
@@ -392,15 +389,13 @@ private:
 		return V1 + V2;
 	}
 
-public:
-
 	MergeSortTree(vector<TreeType> arr) {
 		size = arr.size();
 		tree.resize(4 * size);
 		__mergeSort(arr, 0);
 	}
 
-	int __get(const TreeType& V, int l, int r) { // [l, r], 0-ind
+	int get(const TreeType& V, int l, int r) { // [l, r], 0-ind
 		return __get(V, l, r + 1, 0, size, 0);
 	}
 };
@@ -412,7 +407,7 @@ template<typename TreeType> struct AVL_Tree {
 		TreeType key = 0;
 		int height = 0;
 
-		Node* left = nullptr;
+		Node* lefts = nullptr;
 		Node* right = nullptr;
 
 	};
@@ -426,28 +421,28 @@ template<typename TreeType> struct AVL_Tree {
 		current_node->key = key;
 		current_node->height = 1;
 
-		current_node->left = new Node;
+		current_node->lefts = new Node;
 		current_node->right = new Node;
 	}
 
 	bool __isInit(Node* current_node) const {
-		return (current_node->left != nullptr) && (current_node->right != nullptr);
+		return (current_node->lefts != nullptr) && (current_node->right != nullptr);
 	}
 
 	void __destroyTree(Node* current_node) {
 		if (__isInit(current_node)) {
-			__destroyTree(current_node->left);
+			__destroyTree(current_node->lefts);
 			__destroyTree(current_node->right);
 		}
 		delete current_node;
 	}
 
 	void __smallLeftRotation(Node* current_node, Node* last_node) { // Left left node rotation
-		Node* left_node = current_node->left;
+		Node* left_node = current_node->lefts;
 
 		if (last_node != nullptr) {
-			if (last_node->left == current_node) {
-				last_node->left = left_node;
+			if (last_node->lefts == current_node) {
+				last_node->lefts = left_node;
 			}
 			else {
 				last_node->right = left_node;
@@ -457,18 +452,18 @@ template<typename TreeType> struct AVL_Tree {
 			head = left_node;
 		}
 
-		current_node->left = left_node->right;
+		current_node->lefts = left_node->right;
 		left_node->right = current_node;
 
-		current_node->height = max(current_node->left->height, current_node->right->height) + 1;
-		left_node->height = max(left_node->left->height, left_node->right->height) + 1;
+		current_node->height = max(current_node->lefts->height, current_node->right->height) + 1;
+		left_node->height = max(left_node->lefts->height, left_node->right->height) + 1;
 	}
 	void __smallRightRotation(Node* current_node, Node* last_node) { // Right right node rotation
 		Node* right_node = current_node->right;
 
 		if (last_node != nullptr) {
-			if (last_node->left == current_node) {
-				last_node->left = right_node;
+			if (last_node->lefts == current_node) {
+				last_node->lefts = right_node;
 			}
 			else {
 				last_node->right = right_node;
@@ -478,14 +473,14 @@ template<typename TreeType> struct AVL_Tree {
 			head = right_node;
 		}
 
-		current_node->right = right_node->left;
-		right_node->left = current_node;
+		current_node->right = right_node->lefts;
+		right_node->lefts = current_node;
 
-		current_node->height = max(current_node->left->height, current_node->right->height) + 1;
-		right_node->height = max(right_node->left->height, right_node->right->height) + 1;
+		current_node->height = max(current_node->lefts->height, current_node->right->height) + 1;
+		right_node->height = max(right_node->lefts->height, right_node->right->height) + 1;
 	}
 	void __bigLeftRotation(Node* current_node, Node* last_node) { // Left right node rotation
-		__smallRightRotation(current_node->left, current_node);
+		__smallRightRotation(current_node->lefts, current_node);
 		__smallLeftRotation(current_node, last_node);
 	}
 	void __bigRightRotation(Node* current_node, Node* last_node) { // Right left node rotation
@@ -499,13 +494,13 @@ template<typename TreeType> struct AVL_Tree {
 			return;
 		}
 		if (key < current_node->key) {
-			__insert(key, current_node->left, current_node);
+			__insert(key, current_node->lefts, current_node);
 		}
 		if (key > current_node->key) {
 			__insert(key, current_node->right, current_node);
 		}
 
-		int Hl = current_node->left->height;
+		int Hl = current_node->lefts->height;
 		int Hr = current_node->right->height;
 
 		if (abs(Hl - Hr) == 0) {
@@ -517,8 +512,8 @@ template<typename TreeType> struct AVL_Tree {
 		}
 
 		if (Hl > Hr) {
-			int Hll = current_node->left->left->height;
-			int Hlr = current_node->left->right->height;
+			int Hll = current_node->lefts->lefts->height;
+			int Hlr = current_node->lefts->right->height;
 			if (Hll > Hlr) {
 				__smallLeftRotation(current_node, last_node);
 			}
@@ -527,7 +522,7 @@ template<typename TreeType> struct AVL_Tree {
 			}
 		}
 		else {
-			int Hrl = current_node->right->left->height;
+			int Hrl = current_node->right->lefts->height;
 			int Hrr = current_node->right->right->height;
 			if (Hrl > Hrr) {
 				__bigRightRotation(current_node, last_node);
@@ -543,7 +538,7 @@ template<typename TreeType> struct AVL_Tree {
 			return;
 		}
 
-		__getAllElements(ans, i, current_node->left);
+		__getAllElements(ans, i, current_node->lefts);
 		ans[i++] = current_node->key;
 		__getAllElements(ans, i, current_node->right);
 	}
@@ -552,7 +547,7 @@ template<typename TreeType> struct AVL_Tree {
 		Node* current_node = head;
 		while (__isInit(current_node) && current_node->key != key) {
 			if (key < current_node->key) {
-				current_node = current_node->left;
+				current_node = current_node->lefts;
 			}
 			else if (key > current_node->key) {
 				current_node = current_node->right;
@@ -569,7 +564,7 @@ template<typename TreeType> struct AVL_Tree {
 			}
 			else {
 				ans = current_node;
-				current_node = current_node->left;
+				current_node = current_node->lefts;
 			}
 		}
 		return ans;
@@ -939,6 +934,52 @@ struct BitBor {
 	}
 };
 
+struct DSU {
+
+	int cnt;
+	vector<int> parent;
+	vector<int> sizes;
+
+	DSU(int N) {
+		cnt = N;
+		parent.resize(N, 0);
+		for (int i = 0; i < N; i++) {
+			parent[i] = i;
+		}
+		sizes.resize(N, 1);
+	}
+
+	int getParent(int x) {
+		if (x == parent[x]) return x;
+		return parent[x] = getParent(parent[x]);
+	}
+
+	void merge(int x, int y) {
+		x = getParent(x);
+		y = getParent(y);
+		if (x == y) return;
+		if (sizes[x] < sizes[y]) {
+			swap(x, y);
+		}
+		sizes[x] += sizes[y];
+		parent[y] = x;
+		cnt--;
+	}
+
+	bool inAdjacent(int x, int y) {
+		return getParent(x) == getParent(y);
+	}
+
+	int getComponentsCnt() {
+		return cnt;
+	}
+
+	int getComponentSize(int x) {
+		return sizes[getParent(x)];
+	}
+
+};
+
 // --------------- Strings and Hashes ---------------
 
 template<typename HashType> struct AmountHash {
@@ -1026,17 +1067,144 @@ struct PolynomialHash {
 	}
 };
 
-void zFunction(const string& S, vector<int>& Z) {
-	int N = (int)S.size();
-	Z.assign(N, 0);
-	for (int i = 1, l = 0, r = 1; i < N; ++i) {
-		if (i < r) {
-			Z[i] = std::min(r - i, Z[i - l]);
+struct FastPolynomialHash {
+
+	const static inline long long MODS[2] = { 999999937, 999999929 }; // should be < 1e9 !
+	const static inline long long p = 239;
+	static inline vector<vector<long long>> ps;
+
+	static void init(int SZ) { // !!!!!!!!!!!!!!!!
+
+		ps.resize(2);
+
+		ps[0].resize(SZ + 1);
+		ps[0][0] = 1;
+		for (int i = 1; i <= SZ; i++) {
+			ps[0][i] = ps[0][i - 1] * p;
+			if (ps[0][i] >= MODS[0]) {
+				ps[0][i] %= MODS[0];
+			}
 		}
-		while (i + Z[i] < N && S[Z[i]] == S[i + Z[i]])
-			++Z[i];
-		if (i + Z[i] > r) {
-			l = i, r = i + Z[i];
+
+		ps[1].resize(SZ + 1);
+		ps[1][0] = 1;
+		for (int i = 1; i <= SZ; i++) {
+			ps[1][i] = ps[1][i - 1] * p;
+			if (ps[1][i] >= MODS[1]) {
+				ps[1][i] %= MODS[1];
+			}
 		}
 	}
+
+	static int getAllHash(const string& S) {
+		long long part1 = 0;
+		for (int i = (int)S.size() - 1; i >= 0; i--) {
+			part1 = S[i] + part1 * p;
+			if (part1 >= MODS[0]) {
+				part1 %= MODS[0];
+			}
+		}
+
+		long long part2 = 0;
+		for (int i = (int)S.size() - 1; i >= 0; i--) {
+			part2 = S[i] + part2 * p;
+			if (part2 >= MODS[1]) {
+				part2 %= MODS[1];
+			}
+		}
+
+		return part1 * (long long)1000000000 + part2;
+	}
+
+	vector<vector<long long>> hash;
+
+
+	FastPolynomialHash(const string& S) {
+		hash.resize(2);
+		for (int i = 0; i < 2; i++) {
+			hash[i].resize(S.size() + 1, 0);
+			for (int j = (int)S.size() - 1; j >= 0; j--) {
+				hash[i][j] = (S[j] + hash[i][j + 1] * p) % MODS[i];
+			}
+		}
+	}
+
+	long long getHash(int l, int r) const { // [l, r], 0-ind
+		long long ans;
+
+		ans = (hash[0][l] - (hash[0][r + 1] * ps[0][r - l + 1]) % MODS[0] + MODS[0]) % MODS[0];
+		ans *= (long long)1000000000;
+		ans += (hash[1][l] - (hash[1][r + 1] * ps[1][r - l + 1]) % MODS[1] + MODS[1]) % MODS[1];
+
+		return ans;
+	}
+};
+
+vector<int> zFunction(const string& S) {
+	int N = S.size();
+	vector<int> zf(N, 0);
+	for (int i = 1, l = 0, r = 1; i < N; ++i) {
+		if (i < r) {
+			zf[i] = std::min(r - i, zf[i - l]);
+		}
+		while (i + zf[i] < N && S[zf[i]] == S[i + zf[i]])
+			++zf[i];
+		if (i + zf[i] > r) {
+			l = i;
+			r = i + zf[i];
+		}
+	}
+	return zf;
+}
+
+vector<int> pFunction(const string& S) {
+	int N = S.size();
+	vector<int> pf(N, 0);
+	for (int i = 1; i < N; i++) {
+		int j = pf[i - 1];
+		while (j > 0 && S[i] != S[j]) {
+			j = pf[j - 1];
+		}
+		if (S[i] == S[j]) ++j;
+		pf[i] = j;
+	}
+	return pf;
+}
+
+vector<vector<int>> kmpAut(const string& S, char start_letter, char end_letter) {
+	int N = S.size();
+
+	vector<int> pf(N, 0); // prefix function
+	for (int i = 1; i < N; i++) {
+		int j = pf[i - 1];
+		while (j > 0 && S[i] != S[j]) {
+			j = pf[j - 1];
+		}
+		if (S[i] == S[j]) {
+			j++;
+		}
+		pf[i] = j;
+	}
+
+	int alphabet_sz = end_letter - start_letter + 1;
+
+	vector<vector<int>> aut(N + 1, vector<int>(alphabet_sz, -1)); // aut[match length][new char] = new match length
+
+	for (int i = 0; i <= N; i++) {
+		for (int j = 0; j < alphabet_sz; j++) {
+
+			int C = start_letter + j;
+
+			if (i < N && S[i] == C) {
+				aut[i][j] = i + 1;
+			}
+			else if (i == 0) {
+				aut[i][j] = 0;
+			}
+			else {
+				aut[i][j] = aut[pf[i - 1]][j];
+			}
+		}
+	}
+	return aut;
 }
