@@ -309,6 +309,19 @@ int fastPow(int V, int a, int MOD) {
     return (V * fastPow(V, a - 1, MOD)) % MOD;
 }
 
+int getMex(const vector<int>& arr) {
+    int N = arr.size();
+    vector<bool> cnt_sort(N + 1, true);
+    for (int V : arr) {
+        if (V < N) {
+            cnt_sort[V] = false;
+        }
+    }
+    for (int i = 0; i <= N; i++) {
+        if (cnt_sort[i]) return i;
+    }
+}
+
 bool isPrime(int N) {
     if (N < 2) {
         return false;
@@ -345,7 +358,7 @@ int32_t main() {
     precalculation();
 
     int __TESTS_IN_TASK__ = 1;
-    //cin >> __TESTS_IN_TASK__;
+    cin >> __TESTS_IN_TASK__;
 
     for (int __TEST_CASE__ = 1; __TEST_CASE__ <= __TESTS_IN_TASK__; __TEST_CASE__++) {
         solve();
@@ -358,7 +371,7 @@ int32_t main() {
 // Now int is long long!
 #endif
 
-const int INF = 1e13 + 3;
+const int INF = 1e18 + 3;
 const int MOD = 1e9 + 7;
 
 void precalculation() {}
