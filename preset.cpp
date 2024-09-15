@@ -17,6 +17,46 @@ using namespace std;
 
 // --------------- Trees --------------- 
 
+template<typename TreeType> struct FenwickTree {
+
+	int N;
+	vector<TreeType> tree;
+
+	FenwickTree(int N) {
+		this->N = N;
+		tree.resize(N, 0);
+	}
+
+	FenwickTree(const vector<TreeType>& arr) {
+		this->N = arr.size();
+
+		tree.resize(N, 0);
+		for (int i = 0; i < N; i++) {
+			inc(arr[i], i);
+		}
+	}
+
+	void inc(TreeType V, int id) {
+		while (id < N) {
+			tree[id] += V;
+			id = (id | (id + 1));
+		}
+	}
+
+	TreeType __getPrefs(int id) {
+		TreeType res = 0;
+		while (id >= 0) {
+			res += tree[id];
+			id = (id & (id + 1)) - 1;
+		}
+		return res;
+	}
+
+	TreeType get(int l, int r) {
+		return __getPrefs(r) - __getPrefs(l - 1);
+	}
+};
+
 template<typename TreeType> struct SegmentTree {
 
 	const static inline TreeType FILLER = 0;
@@ -824,7 +864,7 @@ template<typename TableType> struct SparseTable {
 		}
 	}
 
-	TableType __get(int l, int r) { // [l, r], 0-ind
+	TableType get(int l, int r) { // [l, r], 0-ind
 		int deg = degrees[r - l + 1];
 		return func(table[deg][l], table[deg][r - pows[deg] + 1]);
 	}
