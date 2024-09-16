@@ -19,31 +19,32 @@ using namespace std;
 
 template<typename TreeType> struct FenwickTree {
 
+	// 0-indexing
+
 	int N;
 	vector<TreeType> tree;
 
-	FenwickTree(int N) {
-		this->N = N;
+	FenwickTree(int size) {
+		N = size;
 		tree.resize(N, 0);
 	}
 
 	FenwickTree(const vector<TreeType>& arr) {
-		this->N = arr.size();
-
+		N = arr.size();
 		tree.resize(N, 0);
 		for (int i = 0; i < N; i++) {
-			inc(arr[i], i);
+			add(arr[i], i);
 		}
 	}
 
-	void inc(TreeType V, int id) {
+	void add(TreeType V, int id) { // data[id] += V
 		while (id < N) {
 			tree[id] += V;
 			id = (id | (id + 1));
 		}
 	}
 
-	TreeType __getPrefs(int id) {
+	TreeType sum(int id) const {
 		TreeType res = 0;
 		while (id >= 0) {
 			res += tree[id];
@@ -52,8 +53,78 @@ template<typename TreeType> struct FenwickTree {
 		return res;
 	}
 
-	TreeType get(int l, int r) {
-		return __getPrefs(r) - __getPrefs(l - 1);
+	TreeType sum(int l, int r) const {
+		return sum(r) - sum(l - 1);
+	}
+};
+
+template<typename TreeType> struct PowerfullFenwickTree {
+
+	// 1-indexing!
+
+	int N;
+	vector<TreeType> tree;
+
+	const int log2 = 23;
+
+	PowerfullFenwickTree(int size) {
+		N = size;
+		tree.resize(N + 1, 0);
+	}
+
+	PowerfullFenwickTree(const vector<TreeType>& arr) { // arr in 0-indexing!
+		N = arr.size();
+		tree.resize(N + 1, 0);
+		for (int i = 0; i < N; i++) {
+			add(arr[i], i + 1);
+		}
+	}
+
+	// k & -k   is the first 1 in the binary of k
+	void add(TreeType V, int id) {
+		while (id <= N) {
+
+			tree[id] += V;
+			id += (id & -id);
+		}
+	}
+
+	TreeType sum(int id) {
+		TreeType res = 0;
+		while (id > 0) {
+
+			res += tree[id];
+			id -= (id & -id);
+		}
+		return res;
+	}
+
+	TreeType sum(int l, int r) {
+		return sum(r) - sum(l - 1);
+	}
+
+	int lower_bound(TreeType sum) { // return the first index such as prefs[index] >= sum
+		int pos = 0;
+		for (int k = log2; k >= 0; --k) {
+			int next_pos = pos | (1ll << k);
+			if (next_pos <= N && tree[next_pos] < sum) {
+				sum -= tree[next_pos];
+				pos = next_pos;
+			}
+		}
+		return pos + 1;
+	}
+
+	int upper_bound(TreeType sum) { // return the last index such as prefs[index] >= sum
+		int pos = 0;
+		for (int k = log2; k >= 0; --k) {
+			int next_pos = pos | (1ll << k);
+			if (next_pos <= N && tree[next_pos] <= sum) {
+				sum -= tree[next_pos];
+				pos = next_pos;
+			}
+		}
+		return pos + 1;
 	}
 };
 
@@ -110,7 +181,7 @@ template<typename TreeType> struct SegmentTree {
 		__update(value, i, 0, size, 0);
 	}
 
-	TreeType get(int l, int r) { // [l, r], 0-ind
+	TreeType sum(int l, int r) { // [l, r], 0-ind
 		return __get(l, r + 1, 0, size, 0);
 	}
 };
@@ -212,7 +283,7 @@ template<typename TreeType> struct RangeSegmentTree {
 		__update(value, l, r + 1, 0, 0, 0, size);
 	}
 
-	Data get(int l, int r) {
+	Data sum(int l, int r) {
 		return __get(l, r + 1, 0, 0, size);
 	}
 
@@ -339,7 +410,7 @@ template<typename TreeType> struct SparseRangeSegmentTree {
 		__update(value, l, r + 1, 1, 0, 0, size);
 	}
 
-	Data get(int l, int r) {
+	Data sum(int l, int r) {
 		return __get(l, r + 1, 0, 0, size);
 	}
 
@@ -435,7 +506,7 @@ template<typename TreeType> struct MergeSortTree {
 		__mergeSort(arr, 0);
 	}
 
-	int get(const TreeType& V, int l, int r) { // [l, r], 0-ind
+	int sum(const TreeType& V, int l, int r) { // [l, r], 0-ind
 		return __get(V, l, r + 1, 0, size, 0);
 	}
 };
@@ -864,7 +935,7 @@ template<typename TableType> struct SparseTable {
 		}
 	}
 
-	TableType get(int l, int r) { // [l, r], 0-ind
+	TableType sum(int l, int r) { // [l, r], 0-ind
 		int deg = degrees[r - l + 1];
 		return func(table[deg][l], table[deg][r - pows[deg] + 1]);
 	}
@@ -938,7 +1009,7 @@ struct BitBor {
 		}
 	}
 
-	int get(int x) {
+	int sum(int x) {
 		if (head->left_node == nullptr && head->right_node == nullptr) {
 			return 0;
 		}
