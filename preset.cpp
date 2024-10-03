@@ -37,18 +37,18 @@ template<typename TreeType> struct FenwickTree {
 		}
 	}
 
-	void add(TreeType V, int id) { // data[id] += V
-		while (id < N) {
-			tree[id] += V;
-			id = (id | (id + 1));
+	void add(TreeType V, int x) { // data[x] += V
+		while (x < N) {
+			tree[x] += V;
+			x = (x | (x + 1));
 		}
 	}
 
-	TreeType sum(int id) const {
+	TreeType sum(int x) const {
 		TreeType res = 0;
-		while (id >= 0) {
-			res += tree[id];
-			id = (id & (id + 1)) - 1;
+		while (x >= 0) {
+			res += tree[x];
+			x = (x & (x + 1)) - 1;
 		}
 		return res;
 	}
@@ -81,20 +81,18 @@ template<typename TreeType> struct PowerfullFenwickTree {
 	}
 
 	// k & -k   is the first 1 in the binary of k
-	void add(TreeType V, int id) {
-		while (id <= N) {
-
-			tree[id] += V;
-			id += (id & -id);
+	void add(TreeType V, int x) {
+		while (x <= N) {
+			tree[x] += V;
+			x += (x & -x);
 		}
 	}
 
-	TreeType sum(int id) {
+	TreeType sum(int x) {
 		TreeType res = 0;
-		while (id > 0) {
-
-			res += tree[id];
-			id -= (id & -id);
+		while (x > 0) {
+			res += tree[x];
+			x -= (x & -x);
 		}
 		return res;
 	}
@@ -130,60 +128,91 @@ template<typename TreeType> struct PowerfullFenwickTree {
 
 template<typename TreeType> struct SegmentTree {
 
-	const static inline TreeType FILLER = 0;
-	TreeType func(const TreeType& A, const TreeType& B) {
-		return A + B;
-	}
-
-	int size = 0;
+	int size = 1;
 	vector<TreeType> tree;
 
-	void __update(const TreeType& value, int i, int __l, int __r, int __i) { // [l, r), 0-ind
-		if (__r <= i || i < __l) {
-			return;
-		}
-		if (__l == __r - 1) {
-			tree[__i] = value;
-			return;
-		}
-		int __m = (__l + __r) / 2;
-		__update(value, i, __l, __m, __i * 2 + 1);
-		__update(value, i, __m, __r, __i * 2 + 2);
-		tree[__i] = func(tree[__i * 2 + 1], tree[__i * 2 + 2]);
+	const TreeType FILLER = 2e9;
+
+	TreeType func(const TreeType& V1, const TreeType& V2) const {
+		return min(V1, V2);
 	}
 
-	TreeType __get(int l, int r, int __l, int __r, int __i) { // [l, r), 0-ind
-		if (l <= __l && __r <= r) {
-			return tree[__i];
+	void init(int N) {
+		while (size < N) {
+			size *= 2;
 		}
-		if (__l >= r || __r <= l) {
+		tree.resize(size * 2 - 1, FILLER);
+	}
+
+	void build(const vector<TreeType>& arr, int lx, int rx, int x) {
+		if (rx - lx == 1) {
+			if (lx < arr.size()) {
+				tree[x] = arr[lx];
+			}
+			return;
+		}
+		int mx = (lx + rx) / 2;
+		build(arr, lx, mx, x * 2 + 1);
+		build(arr, mx, rx, x * 2 + 2);
+		tree[x] = func(tree[x * 2 + 1], tree[x * 2 + 2]);
+	}
+
+	void build(const vector<TreeType>& arr) {
+		build(arr, 0, size, 0);
+	}
+
+	void set(const TreeType& V, int i, int lx, int rx, int x) {
+		if (rx - lx == 1) {
+			tree[x] = V;
+			return;
+		}
+		int mx = (lx + rx) / 2;
+		if (i < mx) {
+			set(V, i, lx, mx, x * 2 + 1);
+		}
+		else {
+			set(V, i, mx, rx, x * 2 + 2);
+		}
+		tree[x] = func(tree[x * 2 + 1], tree[x * 2 + 2]);
+	}
+
+	void set(const TreeType& V, int i) {
+		set(V, i, 0, size, 0);
+	}
+
+	TreeType get(int l, int r, int lx, int rx, int x) const {
+		if (l <= lx && rx <= r) {
+			return tree[x];
+		}
+		if (r <= lx || rx <= l) {
 			return FILLER;
 		}
-		int __m = (__l + __r) / 2;
-		TreeType value1 = __get(l, r, __l, __m, __i * 2 + 1);
-		TreeType value2 = __get(l, r, __m, __r, __i * 2 + 2);
-		return func(value1, value2);
+		int mx = (lx + rx) / 2;
+		return func(get(l, r, lx, mx, x * 2 + 1), get(l, r, mx, rx, x * 2 + 2));
 	}
 
-	SegmentTree(const vector<TreeType>& arr) {
-		size = arr.size();
-		tree.resize(4 * size, FILLER);
-		for (int i = 0; i < size; i++) {
-			update(arr[i], i);
+	TreeType get(int l, int r) const {
+		return get(l, r, 0, size, 0);
+	}
+
+	int lower_bound(const TreeType& V, int l, int lx, int rx, int x) const { // must be changed
+		if (tree[x] > V || rx <= l) return -1;
+		if (rx - lx == 1) {
+			return lx;
 		}
-	}
-	SegmentTree(int N, const TreeType& value) {
-		size = N;
-		tree.resize(4 * size, value);
-	}
-
-	void update(const TreeType& value, int i) { // 0-ind
-		__update(value, i, 0, size, 0);
+		int mx = (lx + rx) / 2;
+		int p = lower_bound(V, l, lx, mx, x * 2 + 1);
+		if (p == -1) {
+			p = lower_bound(V, l, mx, rx, x * 2 + 2);
+		}
+		return p;
 	}
 
-	TreeType sum(int l, int r) { // [l, r], 0-ind
-		return __get(l, r + 1, 0, size, 0);
+	// returns pos such as it will be >= l or -1 and arr[i] <= V
+	int lower_bound(const TreeType& V, int l) const {
+		return lower_bound(V, l, 0, size, 0);
 	}
+
 };
 
 template<typename TreeType> struct RangeSegmentTree {
